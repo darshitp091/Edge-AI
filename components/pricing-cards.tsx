@@ -6,8 +6,18 @@ import { Check, Zap, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { useRazorpay } from "@/hooks/use-razorpay";
 import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
 
-const pricingTiers = [
+interface PricingTier {
+    name: string;
+    price: string;
+    description: string;
+    features: string[];
+    cta: string;
+    popular: boolean;
+}
+
+const pricingTiers: PricingTier[] = [
     {
         name: "Free",
         price: "0",
@@ -82,31 +92,46 @@ const pricingTiers = [
 export default function PricingCards() {
     const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
     const { initiatePayment } = useRazorpay();
+    const router = useRouter();
 
-    const handleCheckout = async (tier: any) => {
+    const handleCheckout = async (tier: PricingTier) => {
         // 1. Session Guard: Check if user is logged in
         const { data: { session } } = await supabase.auth.getSession();
 
         if (!session && tier.price !== "0") {
             // Store target tier in cookie/localStorage to resume after login
             localStorage.setItem('pending_purchase', JSON.stringify(tier));
-            window.location.href = "/signup?callback=purchase";
+            router.push("/signup?callback=purchase");
             return;
         }
 
         if (tier.price === "0") {
-            window.location.href = "/signup";
+            router.push("/signup");
             return;
         }
 
         if (tier.name === "Business") {
-            window.location.href = "/contact";
+            router.push("/contact");
             return;
         }
 
         if (!session || !session.user) return;
 
-        (initiatePayment as any)({
+        (initiatePayment as (config: {
+            amount: number;
+            currency: string;
+            name: string;
+            description: string;
+            notes: {
+                user_id: string;
+                plan_name: string;
+                credits_to_add: number;
+            };
+            handler: (response: { razorpay_payment_id: string }) => void;
+            prefill: {
+                email: string;
+            };
+        }) => void)({
             amount: parseInt(tier.price) * 100, // Amount in paise
             currency: "USD",
             name: "EdgeAI Platform",
@@ -116,9 +141,9 @@ export default function PricingCards() {
                 plan_name: tier.name,
                 credits_to_add: tier.name === "Starter" ? 50 : tier.name === "Pro" ? 200 : 0
             },
-            handler: (response: any) => {
+            handler: (response: { razorpay_payment_id: string }) => {
                 console.log("Payment Successful:", response);
-                window.location.href = "/dashboard?payment=success&ref=neural_sync";
+                router.push("/dashboard?payment=success&ref=neural_sync");
             },
             prefill: {
                 email: session.user.email || "operator@edgeai.sh"

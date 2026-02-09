@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
         // This coordinates specialized Quantizer and Pruner services
         const results = await NeuralOrchestrator.runPipeline(
             file.size,
-            config.quantization as any,
+            config.quantization as 'int8' | 'int4' | 'fp16',
             config.pruning_ratio,
             config.target_hardware,
             jobId
@@ -76,8 +76,9 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json(results);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Internal Neural Handshake Failure';
         console.error("Neural Route Error:", error);
-        return NextResponse.json({ error: 'Internal Neural Handshake Failure' }, { status: 500 });
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }

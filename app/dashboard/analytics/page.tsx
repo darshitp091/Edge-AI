@@ -57,9 +57,9 @@ import { Suspense } from "react";
 function AnalyticsContent() {
     const searchParams = useSearchParams();
     const jobId = searchParams.get('job');
-    const [latencyData, setLatencyData] = useState<any[]>([]);
-    const [resourceData, setResourceData] = useState<any[]>([]);
-    const [efficiencyFlow, setEfficiencyFlow] = useState<any[]>([]);
+    const [latencyData, setLatencyData] = useState<Record<string, any>[]>([]);
+    const [resourceData, setResourceData] = useState<Record<string, any>[]>([]);
+    const [efficiencyFlow, setEfficiencyFlow] = useState<Record<string, any>[]>([]);
     const [totalVRAM, setTotalVRAM] = useState("0GB");
 
     useEffect(() => {

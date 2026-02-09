@@ -8,7 +8,7 @@ import {
     Cpu,
     Database,
     LineChart,
-    Upload Cloud,
+    UploadCloud,
     Zap,
     Activity,
     Timer,

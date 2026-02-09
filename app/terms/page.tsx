@@ -38,7 +38,7 @@ export default function TermsPage() {
                                     <h2 className="text-2xl font-black text-white">2. Resource Usage</h2>
                                 </div>
                                 <p className="text-zinc-400 text-sm leading-relaxed">
-                                    Users are allotted a specific number of 'Neural Bits' per billing cycle. Excess usage will be throttled or billed per-compression. Automated scraping of the compression API is strictly prohibited without an Enterprise API Gateway subscription.
+                                    Users are allotted a specific number of &apos;Neural Bits&apos; per billing cycle. Excess usage will be throttled or billed per-compression. Automated scraping of the compression API is strictly prohibited without an Enterprise API Gateway subscription.
                                 </p>
                             </div>
 

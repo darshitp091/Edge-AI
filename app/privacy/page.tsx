@@ -41,7 +41,7 @@ export default function PrivacyPage() {
 
                         <div className="glass p-1 rounded-[3rem] border-primary/20 overflow-hidden">
                             <div className="bg-primary/10 p-10 border-b border-primary/20">
-                                <p className="text-xl text-primary font-black italic">"Your architectural secrets are your own. We only provide the shrink-wrap."</p>
+                                <p className="text-xl text-primary font-black italic">&quot;Your architectural secrets are your own. We only provide the shrink-wrap.&quot;</p>
                             </div>
                             <div className="p-10 space-y-12 bg-black/40">
                                 {sections.map((section, i) => (

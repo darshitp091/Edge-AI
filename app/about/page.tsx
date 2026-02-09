@@ -3,7 +3,7 @@
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { motion } from "framer-motion";
-import { Cpu, Zap, Shield, BarChart3, Globe, Users, BrainCircuit, Rocket } from "lucide-react";
+import { Zap, Shield, BarChart3, BrainCircuit } from "lucide-react";
 
 const valueProps = [
     {
@@ -46,7 +46,7 @@ export default function AboutPage() {
                                 Redefining the <span className="text-gradient">Neural Frontier</span>
                             </h1>
                             <p className="text-xl md:text-2xl text-zinc-400 font-light leading-relaxed">
-                                EdgeAI started with a single realization: the future of artificial intelligence isn't just in the cloud—it's in the palms of our hands, the vehicles we drive, and the factories we build.
+                                EdgeAI started with a single realization: the future of artificial intelligence isn&apos;t just in the cloud—it&apos;s in the palms of our hands, the vehicles we drive, and the factories we build.
                             </p>
                         </motion.div>
                     </div>

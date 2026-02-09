@@ -91,7 +91,7 @@ export default function CompressionPage() {
                                         defaultValue={[30]}
                                         max={80}
                                         step={5}
-                                        onValueChange={(val) => setConfig({ ...config, pruning: val[0] })}
+                                        onValueChange={(val: number[]) => setConfig({ ...config, pruning: val[0] })}
                                         className="py-4"
                                     />
                                     <p className="text-[10px] text-zinc-600 font-medium italic">Estimated model size reduction: {config.pruning * 1.5}%</p>
@@ -135,7 +135,7 @@ export default function CompressionPage() {
                                         </div>
                                         <Switch
                                             checked={config.distillation}
-                                            onCheckedChange={(val) => setConfig({ ...config, distillation: val })}
+                                            onCheckedChange={(val: boolean) => setConfig({ ...config, distillation: val })}
                                         />
                                     </div>
                                     <div className="flex items-center justify-between">
@@ -145,7 +145,7 @@ export default function CompressionPage() {
                                         </div>
                                         <Switch
                                             checked={config.advancedOptim}
-                                            onCheckedChange={(val) => setConfig({ ...config, advancedOptim: val })}
+                                            onCheckedChange={(val: boolean) => setConfig({ ...config, advancedOptim: val })}
                                         />
                                     </div>
                                 </div>

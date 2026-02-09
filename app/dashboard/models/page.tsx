@@ -20,8 +20,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 
+interface Model {
+    id: string;
+    original_name: string;
+    optimized_name?: string;
+    original_size: number;
+    optimized_size?: number;
+    created_at: string;
+    status?: string;
+    jobs?: { status: string; config: any }[];
+}
+
 export default function ModelGalleryPage() {
-    const [dbModels, setDbModels] = useState<any[]>([]);
+    const [dbModels, setDbModels] = useState<Model[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
