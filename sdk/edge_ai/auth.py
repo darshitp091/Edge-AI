@@ -9,8 +9,8 @@ import os
 
 console = Console()
 
-# Placeholder for Supabase link - In production this would be your app URL
-AUTH_URL = "http://localhost:3000/auth/cli-login"
+# Production Neural Core Endpoint
+AUTH_URL = "https://edge-ai-alpha.vercel.app/auth/cli-login"
 
 class AuthHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
