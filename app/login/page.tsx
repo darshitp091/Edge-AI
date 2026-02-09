@@ -34,8 +34,18 @@ export default function LoginPage() {
             setError(authError.message);
             setIsLoading(false);
         } else {
+            // Give the session a moment to propagate to cookies
             const next = new URLSearchParams(window.location.search).get('next') || '/dashboard';
-            router.push(next);
+
+            // Re-verify session exists before pushing
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                router.push(next);
+                // We keep isLoading true to show navigation is happening
+            } else {
+                setError("Protocol Timeout: Session synchronization failed. Please try again.");
+                setIsLoading(false);
+            }
         }
     };
 
