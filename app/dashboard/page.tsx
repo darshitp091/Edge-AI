@@ -15,15 +15,52 @@ import {
     PieChart
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const stats = [
-    { label: "Total Artifacts", value: "154", icon: Database, color: "text-primary" },
-    { label: "Mean Efficiency", value: "84.2%", icon: Zap, color: "text-yellow-500" },
-    { label: "Active Jobs", value: "03", icon: Activity, color: "text-green-500" },
-    { label: "Total Saved", value: "$4.2K", icon: LineChart, color: "text-purple-500" },
-];
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 export default function DashboardPage() {
+    const [stats, setStats] = useState([
+        { label: "Total Artifacts", value: "---", icon: Database, color: "text-primary" },
+        { label: "Mean Efficiency", value: "---", icon: Zap, color: "text-yellow-500" },
+        { label: "Active Jobs", value: "---", icon: Activity, color: "text-green-500" },
+        { label: "Total Saved", value: "---", icon: LineChart, color: "text-purple-500" },
+    ]);
+    const [jobs, setJobs] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            // 1. Fetch total models
+            const { count: modelCount } = await supabase
+                .from('models')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', user.id);
+
+            // 2. Fetch active jobs
+            const { data: activeJobs, count: activeJobsCount } = await supabase
+                .from('jobs')
+                .select('*', { count: 'exact' })
+                .eq('user_id', user.id)
+                .in('status', ['pending', 'processing']);
+
+            // 3. Update Stats state
+            setStats([
+                { label: "Total Artifacts", value: (modelCount || 0).toString().padStart(2, '0'), icon: Database, color: "text-primary" },
+                { label: "Mean Efficiency", value: "84.2%", icon: Zap, color: "text-yellow-500" },
+                { label: "Active Jobs", value: (activeJobsCount || 0).toString().padStart(2, '0'), icon: Activity, color: "text-green-500" },
+                { label: "Total Saved", value: "$4.2K", icon: LineChart, color: "text-purple-500" },
+            ]);
+
+            setJobs(activeJobs || []);
+            setLoading(false);
+        };
+
+        fetchDashboardData();
+    }, []);
+
     return (
         <div className="min-h-screen flex bg-background">
             <DashboardSidebar />
@@ -123,26 +160,33 @@ export default function DashboardPage() {
                                 </h2>
 
                                 <div className="space-y-4">
-                                    {[1, 2, 3].map((job) => (
-                                        <div key={job} className="p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-primary/20 transition-all group cursor-pointer">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <span className="text-xs font-bold text-zinc-300">Model_v{job}.onnx</span>
-                                                <span className="text-[10px] font-black uppercase text-primary">In Progress</span>
-                                            </div>
-                                            <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
-                                                <motion.div
-                                                    className="h-full bg-primary glow-blue"
-                                                    initial={{ width: 0 }}
-                                                    animate={{ width: `${30 + job * 20}%` }}
-                                                    transition={{ duration: 1, delay: job * 0.2 }}
-                                                />
-                                            </div>
-                                            <div className="flex justify-between mt-2 text-[10px] font-bold text-zinc-500">
-                                                <span>Quantization (INT8)</span>
-                                                <span>{30 + job * 20}%</span>
-                                            </div>
+                                    {jobs.length === 0 ? (
+                                        <div className="py-12 text-center space-y-3 opacity-50">
+                                            <Activity className="h-6 w-6 mx-auto text-zinc-600" />
+                                            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">No active streams</p>
                                         </div>
-                                    ))}
+                                    ) : (
+                                        jobs.map((job, i) => (
+                                            <div key={job.id} className="p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-primary/20 transition-all group cursor-pointer">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="text-xs font-bold text-zinc-300">{job.model_name || 'Neural_Shard.bin'}</span>
+                                                    <span className="text-[10px] font-black uppercase text-primary animate-pulse">{job.status}</span>
+                                                </div>
+                                                <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
+                                                    <motion.div
+                                                        className="h-full bg-primary glow-blue"
+                                                        initial={{ width: 0 }}
+                                                        animate={{ width: `${job.progress || 10}%` }}
+                                                        transition={{ duration: 1 }}
+                                                    />
+                                                </div>
+                                                <div className="flex justify-between mt-2 text-[10px] font-bold text-zinc-500">
+                                                    <span>{job.method?.toUpperCase() || 'INT8'}</span>
+                                                    <span>{job.progress || 10}%</span>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
 
                                 <Button variant="ghost" className="w-full mt-6 text-zinc-500 hover:text-white font-bold text-xs uppercase tracking-widest">
