@@ -56,7 +56,7 @@ graph TD
 ### 1. Clone & Initialize
 ```bash
 git clone https://github.com/darshitp091/CRMCoach.git
-cd CRMCoach
+cd Edge-AI
 npm install
 ```
 
