@@ -18,6 +18,9 @@ export const metadata: Metadata = {
   keywords: ["AI compression", "model optimization", "edge AI", "quantization", "INT8", "INT4", "TensorFlow Lite", "ONNX", "PyTorch"],
 };
 
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,6 +32,8 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
