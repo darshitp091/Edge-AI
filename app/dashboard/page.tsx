@@ -14,6 +14,15 @@ import {
     Timer,
     PieChart
 } from "lucide-react";
+import {
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+    AreaChart,
+    Area
+} from "recharts";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
@@ -23,9 +32,10 @@ export default function DashboardPage() {
         { label: "Total Artifacts", value: "---", icon: Database, color: "text-primary" },
         { label: "Mean Efficiency", value: "---", icon: Zap, color: "text-yellow-500" },
         { label: "Active Jobs", value: "---", icon: Activity, color: "text-green-500" },
-        { label: "Total Saved", value: "---", icon: LineChart, color: "text-purple-500" },
+        { label: "Neural Bits Saved", value: "---", icon: LineChart, color: "text-purple-500" },
     ]);
     const [jobs, setJobs] = useState<any[]>([]);
+    const [chartData, setChartData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -42,16 +52,54 @@ export default function DashboardPage() {
             // 2. Fetch active jobs
             const { data: activeJobs, count: activeJobsCount } = await supabase
                 .from('jobs')
-                .select('*', { count: 'exact' })
+                .select('*, models(name)', { count: 'exact' })
                 .eq('user_id', user.id)
                 .in('status', ['pending', 'processing']);
 
-            // 3. Update Stats state
+            // 3. Fetch Metrics for Efficiency & Savings
+            const { data: metricsData } = await supabase
+                .from('metrics')
+                .select(`
+                    efficiency_score,
+                    memory_original,
+                    memory_optimized,
+                    jobs!inner(user_id)
+                `)
+                .eq('jobs.user_id', user.id);
+
+            const avgEfficiency = metricsData && metricsData.length > 0
+                ? (metricsData.reduce((acc, m) => acc + (m.efficiency_score || 0), 0) / metricsData.length).toFixed(1)
+                : "0";
+
+            const totalSavedMB = metricsData && metricsData.length > 0
+                ? (metricsData.reduce((acc, m) => acc + ((m.memory_original || 0) - (m.memory_optimized || 0)), 0) / 1024).toFixed(1)
+                : "0";
+
+            // 4. Fetch chart data
+            const { data: trendData } = await supabase
+                .from('metrics')
+                .select(`
+                    efficiency_score,
+                    created_at,
+                    jobs!inner(user_id)
+                `)
+                .eq('jobs.user_id', user.id)
+                .order('created_at', { ascending: true })
+                .limit(10);
+
+            if (trendData) {
+                setChartData(trendData.map((m, i) => ({
+                    index: i + 1,
+                    efficiency: m.efficiency_score
+                })));
+            }
+
+            // 5. Update Stats state
             setStats([
                 { label: "Total Artifacts", value: (modelCount || 0).toString().padStart(2, '0'), icon: Database, color: "text-primary" },
-                { label: "Mean Efficiency", value: "84.2%", icon: Zap, color: "text-yellow-500" },
+                { label: "Mean Efficiency", value: `${avgEfficiency}%`, icon: Zap, color: "text-yellow-500" },
                 { label: "Active Jobs", value: (activeJobsCount || 0).toString().padStart(2, '0'), icon: Activity, color: "text-green-500" },
-                { label: "Total Saved", value: "$4.2K", icon: LineChart, color: "text-purple-500" },
+                { label: "Neural Bits Saved", value: `${totalSavedMB}GB`, icon: LineChart, color: "text-purple-500" },
             ]);
 
             setJobs(activeJobs || []);
@@ -62,19 +110,22 @@ export default function DashboardPage() {
     }, []);
 
     return (
-        <div className="min-h-screen flex bg-background">
+        <div className="min-h-screen flex bg-background text-foreground overflow-hidden">
             <DashboardSidebar />
-            <div className="flex-grow flex flex-col">
+            <div className="flex-grow flex flex-col min-w-0">
                 <DashboardHeader />
 
-                <main className="p-8 space-y-8 max-w-7xl">
+                <main className="flex-grow p-8 space-y-8 overflow-y-auto custom-scrollbar">
                     {/* Welcome Section */}
-                    <div className="flex justify-between items-end">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                         <div className="space-y-1">
                             <h1 className="text-3xl font-black tracking-tight text-white">Neural Dashboard</h1>
                             <p className="text-zinc-500 text-sm">Synchronized with Edge Hub v1.0.4 - All systems nominal.</p>
                         </div>
-                        <Button className="bg-primary hover:bg-primary/90 rounded-2xl h-12 px-6 font-bold shadow-lg shadow-primary/20">
+                        <Button
+                            onClick={() => window.location.href = "/dashboard/compress"}
+                            className="bg-primary hover:bg-primary/90 rounded-2xl h-12 px-6 font-bold shadow-lg shadow-primary/20"
+                        >
                             <UploadCloud className="mr-2 h-5 w-5" />
                             New Compression Task
                         </Button>
@@ -110,30 +161,53 @@ export default function DashboardPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Main Visualizer Area */}
                         <div className="lg:col-span-2 space-y-8">
-                            <div className="glass rounded-[2.5rem] p-8 min-h-[400px] border-white/5 relative overflow-hidden group">
-                                <div className="absolute top-0 right-0 p-8">
-                                    <div className="flex gap-2">
-                                        <div className="h-2 w-12 bg-primary rounded-full" />
-                                        <div className="h-2 w-12 bg-white/10 rounded-full" />
-                                    </div>
-                                </div>
-
+                            <div className="glass rounded-[2.5rem] p-8 min-h-[440px] border-white/5 relative overflow-hidden group flex flex-col">
                                 <h2 className="text-xl font-black text-white mb-8 flex items-center gap-3">
-                                    <PieChart className="h-5 w-5 text-primary" />
+                                    <Activity className="h-5 w-5 text-primary" />
                                     Neural Performance Matrix
                                 </h2>
 
-                                <div className="flex items-center justify-center h-64 border-2 border-dashed border-white/5 rounded-3xl group-hover:border-primary/20 transition-all">
-                                    <div className="text-center space-y-4">
-                                        <div className="h-16 w-16 glass rounded-full flex items-center justify-center mx-auto mb-4 border-primary/20">
-                                            <Activity className="h-6 w-6 text-primary animate-pulse" />
+                                <div className="flex-grow w-full min-h-[250px] mb-8">
+                                    {chartData.length > 0 ? (
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <AreaChart data={chartData}>
+                                                <defs>
+                                                    <linearGradient id="colorEff" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                                    </linearGradient>
+                                                </defs>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+                                                <XAxis dataKey="index" hide />
+                                                <YAxis hide domain={[0, 100]} />
+                                                <Tooltip
+                                                    contentStyle={{ background: '#09090b', border: '1px solid #ffffff10', borderRadius: '12px' }}
+                                                    itemStyle={{ color: '#3b82f6', fontSize: '12px', fontWeight: 'bold' }}
+                                                />
+                                                <Area
+                                                    type="monotone"
+                                                    dataKey="efficiency"
+                                                    stroke="#3b82f6"
+                                                    strokeWidth={3}
+                                                    fillOpacity={1}
+                                                    fill="url(#colorEff)"
+                                                    animationDuration={2000}
+                                                />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                    ) : (
+                                        <div className="flex items-center justify-center h-full border-2 border-dashed border-white/5 rounded-3xl">
+                                            <div className="text-center space-y-2">
+                                                <div className="h-12 w-12 glass rounded-full flex items-center justify-center mx-auto mb-2 border-primary/10">
+                                                    <Zap className="h-5 w-5 text-primary opacity-50" />
+                                                </div>
+                                                <p className="text-zinc-600 text-xs font-medium">Capture neural metrics to begin visualization</p>
+                                            </div>
                                         </div>
-                                        <p className="text-zinc-500 text-sm font-medium">Neural visualization core initializing...</p>
-                                        <p className="text-[10px] uppercase font-black text-primary tracking-widest px-4 py-1 glass rounded-full inline-block">Real-time Hook active</p>
-                                    </div>
+                                    )}
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-6 mt-8 pt-8 border-t border-white/5">
+                                <div className="grid grid-cols-3 gap-6 pt-8 border-t border-white/5">
                                     <div className="space-y-1">
                                         <p className="text-[10px] uppercase font-bold text-zinc-500">Peak Latency</p>
                                         <p className="text-lg font-black text-white">0.42ms <span className="text-[10px] text-green-500">-12%</span></p>
@@ -169,7 +243,7 @@ export default function DashboardPage() {
                                         jobs.map((job, i) => (
                                             <div key={job.id} className="p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-primary/20 transition-all group cursor-pointer">
                                                 <div className="flex justify-between items-center mb-2">
-                                                    <span className="text-xs font-bold text-zinc-300">{job.model_name || 'Neural_Shard.bin'}</span>
+                                                    <span className="text-xs font-bold text-zinc-300 truncate max-w-[120px]">{job.models?.name || job.model_name || 'Neural_Shard.bin'}</span>
                                                     <span className="text-[10px] font-black uppercase text-primary animate-pulse">{job.status}</span>
                                                 </div>
                                                 <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
@@ -189,7 +263,11 @@ export default function DashboardPage() {
                                     )}
                                 </div>
 
-                                <Button variant="ghost" className="w-full mt-6 text-zinc-500 hover:text-white font-bold text-xs uppercase tracking-widest">
+                                <Button
+                                    onClick={() => window.location.href = "/dashboard/logs"}
+                                    variant="ghost"
+                                    className="w-full mt-6 text-zinc-500 hover:text-white font-bold text-xs uppercase tracking-widest"
+                                >
                                     View Core Queue
                                 </Button>
                             </div>

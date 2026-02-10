@@ -65,12 +65,22 @@ export default function DashboardHeader() {
                     <span className="text-xs font-black uppercase tracking-widest text-zinc-100">
                         {credits} <span className="text-zinc-500">Neural Bits</span>
                     </span>
-                    <Button variant="ghost" size="sm" className="h-6 px-3 rounded-full bg-primary text-[10px] font-bold text-white ml-2 hover:bg-primary/90">
+                    <Button
+                        onClick={() => router.push("/pricing")}
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-3 rounded-full bg-primary text-[10px] font-bold text-white ml-2 hover:bg-primary/90"
+                    >
                         Refill
                     </Button>
                 </div>
 
-                <Button variant="ghost" size="icon" className="glass h-11 w-11 rounded-2xl border-white/5 hover:bg-white/10 relative">
+                <Button
+                    onClick={() => router.push("/dashboard/logs")}
+                    variant="ghost"
+                    size="icon"
+                    className="glass h-11 w-11 rounded-2xl border-white/5 hover:bg-white/10 relative"
+                >
                     <Bell className="h-5 w-5 text-zinc-400" />
                     <span className="absolute top-3 right-3 h-2 w-2 bg-primary rounded-full ring-4 ring-background" />
                 </Button>

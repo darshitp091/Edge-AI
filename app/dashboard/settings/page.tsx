@@ -18,15 +18,42 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { usePlan } from "@/hooks/use-plan";
+import { supabase } from "@/lib/supabase";
+import { useState, useEffect } from "react";
 
 export default function SettingsPage() {
+    const { tier, features, loading: planLoading } = usePlan();
+    const [user, setUser] = useState<any>(null);
+    const [profile, setProfile] = useState<any>(null);
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                setUser(user);
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+                if (profile) setProfile(profile);
+            }
+        };
+        fetchUserData();
+    }, []);
+
+    const resetDateStr = profile?.billing_cycle_start
+        ? new Date(new Date(profile.billing_cycle_start).setMonth(new Date(profile.billing_cycle_start).getMonth() + 1)).toLocaleDateString()
+        : "Pending";
+
     return (
         <div className="min-h-screen flex bg-background">
             <DashboardSidebar />
             <div className="flex-grow flex flex-col">
                 <DashboardHeader />
 
-                <main className="p-8 space-y-8 max-w-7xl">
+                <main className="p-8 space-y-8 max-w-7xl overflow-y-auto custom-scrollbar">
                     <div className="space-y-1">
                         <h1 className="text-3xl font-black tracking-tight text-white">Neural Key Settings</h1>
                         <p className="text-zinc-500 text-sm">Configure your core preferences and API access.</p>
@@ -44,8 +71,8 @@ export default function SettingsPage() {
                                         </div>
                                     </div>
                                     <div className="space-y-1">
-                                        <h2 className="text-2xl font-black text-white">Neural Operator</h2>
-                                        <p className="text-zinc-500 text-sm">operator_448@edgeai.sh • Premium Node</p>
+                                        <h2 className="text-2xl font-black text-white">{profile?.full_name || user?.email?.split('@')[0] || "Neural Operator"}</h2>
+                                        <p className="text-zinc-500 text-sm">{user?.email || "operator@edgeai.sh"} • {tier.toUpperCase()} Node</p>
                                         <div className="flex gap-2 pt-2">
                                             <span className="px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-black uppercase tracking-tight">Level 5</span>
                                             <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 text-[10px] font-black uppercase tracking-tight italic">Verified Architecture</span>
@@ -56,11 +83,11 @@ export default function SettingsPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
                                         <Label className="text-[10px] uppercase font-black text-zinc-500 tracking-widest ml-1">Display Designation</Label>
-                                        <Input defaultValue="Patel Darshit" className="bg-white/5 border-zinc-800 h-12 rounded-2xl" />
+                                        <Input defaultValue={profile?.full_name || ""} className="bg-white/5 border-zinc-800 h-12 rounded-2xl" />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-[10px] uppercase font-black text-zinc-500 tracking-widest ml-1">Contact Routing</Label>
-                                        <Input defaultValue="patel@edgeai.sh" className="bg-white/5 border-zinc-800 h-12 rounded-2xl" />
+                                        <Input defaultValue={user?.email || ""} className="bg-white/5 border-zinc-800 h-12 rounded-2xl" />
                                     </div>
                                 </div>
 
@@ -138,11 +165,14 @@ export default function SettingsPage() {
                                     <CreditCard className="h-4 w-4" /> Node Capacity
                                 </h3>
                                 <div className="space-y-2">
-                                    <p className="text-2xl font-black text-white italic">Neural Tier</p>
-                                    <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-tight">Active until March 2026</p>
+                                    <p className="text-2xl font-black text-white italic">{tier.toUpperCase()} Tier</p>
+                                    <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-tight">Next Cycle: {resetDateStr}</p>
                                 </div>
-                                <Button className="w-full h-12 bg-primary hover:bg-primary/90 glow-blue text-white font-black rounded-2xl">
-                                    Expand Access
+                                <Button
+                                    onClick={() => window.location.href = "/pricing"}
+                                    className="w-full h-12 bg-primary hover:bg-primary/90 glow-blue text-white font-black rounded-2xl"
+                                >
+                                    Expand Access / Upgrade
                                 </Button>
                             </div>
                         </div>
