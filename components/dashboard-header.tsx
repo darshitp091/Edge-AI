@@ -6,12 +6,14 @@ import { supabase } from "@/lib/supabase";
 import { Bell, Search, User, Zap, LogOut } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { usePlan, PlanTier } from "@/hooks/use-plan";
 
 export default function DashboardHeader() {
     const router = useRouter();
+    const { tier, features, loading: planLoading, isPro } = usePlan();
     const [userName, setUserName] = useState<string>("Neural_Guest");
-    const [isPro, setIsPro] = useState(false);
     const [credits, setCredits] = useState<number>(0);
+    const [resetDate, setResetDate] = useState<string>("");
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -19,16 +21,20 @@ export default function DashboardHeader() {
             if (user) {
                 setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || "Operator");
 
-                // Fetch profile data
+                // Fetch real-time profile data for credits
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('credits, subscription_tier')
+                    .select('credits, billing_cycle_start')
                     .eq('id', user.id)
                     .single();
 
                 if (profile) {
                     setCredits(profile.credits || 0);
-                    setIsPro(profile.subscription_tier === 'pro');
+                    if (profile.billing_cycle_start) {
+                        const date = new Date(profile.billing_cycle_start);
+                        date.setMonth(date.getMonth() + 1);
+                        setResetDate(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                    }
                 }
             }
         };
@@ -77,7 +83,14 @@ export default function DashboardHeader() {
                     </div>
                     <div className="flex flex-col text-left">
                         <span className="text-xs font-bold text-zinc-200 truncate max-w-[80px]">{userName}</span>
-                        <span className="text-[8px] uppercase tracking-tighter text-primary font-black">{isPro ? "Pro Operator" : "Explorer"}</span>
+                        <span className="text-[8px] uppercase tracking-tighter text-primary font-black">
+                            {tier === 'pro' ? "Pro Operator" : tier === 'enterprise' ? "Enterprise Arch" : "Explorer"}
+                        </span>
+                        {resetDate && (
+                            <span className="text-[6px] uppercase tracking-tighter text-zinc-500 font-bold mt-0.5">
+                                Reset: {resetDate}
+                            </span>
+                        )}
                     </div>
 
                     {/* Logout Dropdown Simulation */}

@@ -30,36 +30,70 @@ export async function POST(req: Request) {
     const payload = JSON.parse(body);
     const event = payload.event;
 
-    // 2. Handle Payment Success
-    if (event === "payment.captured") {
-        const payment = payload.payload.payment.entity;
-        const userId = payment.notes?.user_id;
-        const creditsToAdd = parseInt(payment.notes?.credits_to_add || "0");
-        const planName = payment.notes?.plan_name;
+    // 2. Handle Payment & Subscription Events
+    switch (event) {
+        case "payment.captured":
+        case "order.paid": {
+            const payment = payload.payload.payment?.entity || payload.payload.order?.entity;
+            const userId = payment.notes?.user_id;
+            const creditsToAdd = parseInt(payment.notes?.credits_to_add || "0");
+            const planName = payment.notes?.plan_name || "free";
 
-        if (userId && creditsToAdd > 0) {
-            console.log(`📡 Reconciling Payment: User ${userId} | Plan: ${planName} | Credits: +${creditsToAdd}`);
+            if (userId && creditsToAdd > 0) {
+                console.log(`📡 Reconciling Payment: User ${userId} | Plan: ${planName} | Credits: +${creditsToAdd}`);
 
-            // 3. Update Profile via Supabase Admin
-            const { error: updateError } = await supabaseAdmin
-                .from('profiles')
-                .select('credits')
-                .eq('id', userId)
-                .single();
-
-            if (!updateError) {
-                const { error: finalError } = await supabaseAdmin.rpc('increment_credits', {
+                await supabaseAdmin.rpc('increment_credits', {
                     user_id: userId,
                     amount: creditsToAdd,
                     new_tier: planName.toLowerCase()
                 });
-
-                if (finalError) {
-                    console.error("❌ Database Reconciliation Failure:", finalError);
-                } else {
-                    console.log("✅ Neural Sync Complete: Credits Dispatched");
-                }
             }
+            break;
+        }
+
+        case "subscription.activated":
+        case "subscription.charged": {
+            const subscription = payload.payload.subscription.entity;
+            const userId = subscription.notes?.user_id;
+            const planName = subscription.notes?.plan_name || "pro";
+
+            // Map plan to credits (Standard SaaS pricing)
+            const creditMapping: Record<string, number> = {
+                "free": 100,
+                "pro": 1000,
+                "enterprise": 10000
+            };
+
+            const credits = creditMapping[planName.toLowerCase()] || 0;
+
+            if (userId) {
+                console.log(`⚡ Subscription Sync: User ${userId} | Event: ${event} | Plan: ${planName}`);
+
+                // Use the new hardened RPC for atomic sync
+                await supabaseAdmin.rpc('sync_subscription_credits', {
+                    user_id: userId,
+                    amount: credits,
+                    new_tier: planName.toLowerCase(),
+                    sub_id: subscription.id,
+                    cycle_start: new Date().toISOString()
+                });
+            }
+            break;
+        }
+
+        case "subscription.cancelled": {
+            const subscription = payload.payload.subscription.entity;
+            const userId = subscription.notes?.user_id;
+
+            if (userId) {
+                console.log(`⚠️ Subscription Terminated: User ${userId}`);
+                await supabaseAdmin.from('profiles').update({
+                    plan_tier: "free",
+                    subscription_id: null,
+                    updated_at: new Date().toISOString()
+                }).eq('id', userId);
+            }
+            break;
         }
     }
 
