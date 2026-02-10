@@ -48,12 +48,22 @@ export default function InstallationPage() {
                     </div>
                 </section>
 
+                <section className="space-y-6">
+                    <h2 className="text-3xl font-black italic text-white tracking-tight">3. Authenticate</h2>
+                    <p className="text-zinc-400">Secure your sharding session by linking your machine to your account using the Neural Access Key from your <a href="/dashboard/settings" className="text-primary hover:underline">Settings</a>.</p>
+                    <div className="bg-black/50 border border-white/10 rounded-2xl p-6 font-mono text-sm text-zinc-300">
+                        edge-ai login --key &lt;YOUR_API_KEY&gt;
+                        <br />
+                        <span className="text-zinc-600"># Result: Session sharding node established.</span>
+                    </div>
+                </section>
+
                 <div className="glass p-8 rounded-[2.5rem] border-primary/20 bg-primary/5 space-y-4">
                     <h3 className="text-xl font-bold text-white flex items-center gap-3">
                         <CheckCircle2 className="h-5 w-5 text-primary" />
                         Next Steps
                     </h3>
-                    <p className="text-zinc-400 text-sm">Once installed, you must authenticate your machine to start sharding models.</p>
+                    <p className="text-zinc-400 text-sm">Once authenticated, you can start optimizing models directly from your terminal or CI/CD pipeline.</p>
                 </div>
             </div>
         </DocsLayout>

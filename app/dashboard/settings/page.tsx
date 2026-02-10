@@ -43,9 +43,12 @@ export default function SettingsPage() {
         fetchUserData();
     }, []);
 
-    const resetDateStr = profile?.billing_cycle_start
-        ? new Date(new Date(profile.billing_cycle_start).setMonth(new Date(profile.billing_cycle_start).getMonth() + 1)).toLocaleDateString()
-        : "Pending";
+    const nextReset = profile?.billing_cycle_start
+        ? new Date(new Date(profile.billing_cycle_start).setMonth(new Date(profile.billing_cycle_start).getMonth() + 1))
+        : null;
+
+    const resetDateStr = nextReset ? nextReset.toLocaleDateString() : "Pending";
+    const daysUntilReset = nextReset ? Math.ceil((nextReset.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 30;
 
     return (
         <div className="min-h-screen flex bg-background">
@@ -54,6 +57,27 @@ export default function SettingsPage() {
                 <DashboardHeader />
 
                 <main className="p-8 space-y-8 max-w-7xl overflow-y-auto custom-scrollbar">
+                    {daysUntilReset <= 7 && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-4 bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-between group"
+                        >
+                            <div className="flex items-center gap-3">
+                                <Zap className="h-5 w-5 text-primary animate-pulse" />
+                                <div>
+                                    <p className="text-sm font-black text-white italic">Neural Cycle Reset Imminent</p>
+                                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Your {tier} capacity will replenish in {daysUntilReset} days.</p>
+                                </div>
+                            </div>
+                            <Button
+                                onClick={() => window.location.href = "/pricing"}
+                                variant="ghost" className="h-9 px-4 text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 rounded-xl"
+                            >
+                                Secure Expansion
+                            </Button>
+                        </motion.div>
+                    )}
                     <div className="space-y-1">
                         <h1 className="text-3xl font-black tracking-tight text-white">Neural Key Settings</h1>
                         <p className="text-zinc-500 text-sm">Configure your core preferences and API access.</p>
@@ -76,6 +100,11 @@ export default function SettingsPage() {
                                         <div className="flex gap-2 pt-2">
                                             <span className="px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-black uppercase tracking-tight">Level 5</span>
                                             <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 text-[10px] font-black uppercase tracking-tight italic">Verified Architecture</span>
+                                            {profile?.created_at && (
+                                                <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-tight">
+                                                    Joined: {new Date(profile.created_at).toLocaleDateString()}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -105,15 +134,42 @@ export default function SettingsPage() {
                                 <p className="text-zinc-500 text-sm">Use these keys to authenticate your CLI and edge SDK calls.</p>
 
                                 <div className="space-y-4">
-                                    <div className="p-5 bg-black/40 border border-white/5 rounded-2xl flex items-center justify-between">
+                                    <div className="p-5 bg-black/40 border border-white/5 rounded-2xl flex items-center justify-between group/key">
                                         <div className="flex flex-col gap-1">
                                             <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Primary Engine Key</span>
-                                            <span className="font-mono text-sm text-zinc-300">edge_live_448*****************2a3</span>
+                                            <span className="font-mono text-sm text-zinc-300">
+                                                {profile?.api_key ? `edge_${profile.api_key.slice(0, 8)}...${profile.api_key.slice(-4)}` : "edge_gen_vector_pending_000"}
+                                            </span>
                                         </div>
-                                        <Button variant="ghost" className="h-8 px-4 text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 rounded-lg">Copy Key</Button>
+                                        <Button
+                                            onClick={() => {
+                                                if (profile?.api_key) {
+                                                    navigator.clipboard.writeText(profile.api_key);
+                                                    alert("Neural access key copied to clipboard.");
+                                                }
+                                            }}
+                                            variant="ghost"
+                                            className="h-8 px-4 text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 rounded-lg"
+                                        >
+                                            Copy Key
+                                        </Button>
                                     </div>
                                 </div>
-                                <Button variant="outline" className="w-full h-12 glass border-primary/20 text-primary font-black uppercase tracking-widest hover:bg-primary/5 rounded-2xl">
+                                <Button
+                                    onClick={async () => {
+                                        const newKey = `sk_${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`;
+                                        const { error } = await supabase
+                                            .from('profiles')
+                                            .update({ api_key: newKey })
+                                            .eq('id', user.id);
+                                        if (!error) {
+                                            setProfile({ ...profile, api_key: newKey });
+                                            alert("New neural access vector generated.");
+                                        }
+                                    }}
+                                    variant="outline"
+                                    className="w-full h-12 glass border-primary/20 text-primary font-black uppercase tracking-widest hover:bg-primary/5 rounded-2xl shadow-lg shadow-primary/5"
+                                >
                                     Regenerate Access Vector
                                 </Button>
                             </div>

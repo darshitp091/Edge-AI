@@ -14,15 +14,34 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
-const logs = [
-    { id: 1, time: "2026-02-07 21:40:12", event: "Optimization Completed", model: "resnet50_v2.onnx", status: "success", hardware: "Jetson Nano" },
-    { id: 2, time: "2026-02-07 21:38:45", event: "Layer Decomposition", model: "bert_large.pt", status: "processing", hardware: "A100" },
-    { id: 3, time: "2026-02-07 21:35:10", event: "Quantization Failed", model: "mobilenet_v3.h5", status: "error", hardware: "Generic CPU" },
-    { id: 4, time: "2026-02-07 21:30:22", event: "Pruning Started", model: "yolov8m.tflite", status: "success", hardware: "iOS NPU" },
-    { id: 5, time: "2026-02-07 21:25:00", event: "Upload Verified", model: "unet_stable.onnx", status: "success", hardware: "S3 Bucket" },
-];
+import { supabase } from "@/lib/supabase";
+import { useState, useEffect } from "react";
 
 export default function LogsPage() {
+    const [liveLogs, setLiveLogs] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchLogs = async () => {
+            const { data, error } = await supabase
+                .from('jobs')
+                .select(`
+                    id,
+                    created_at,
+                    status,
+                    config,
+                    models (name)
+                `)
+                .order('created_at', { ascending: false });
+
+            if (data && !error) {
+                setLiveLogs(data);
+            }
+            setLoading(false);
+        };
+        fetchLogs();
+    }, []);
+
     return (
         <div className="min-h-screen flex bg-background">
             <DashboardSidebar />
@@ -49,22 +68,30 @@ export default function LogsPage() {
                             </div>
                             <span className="text-[10px] font-black text-zinc-600 tracking-widest uppercase italic">Streaming Engine 4.0.2</span>
                         </div>
-                        <div className="p-4 font-mono text-xs leading-relaxed max-h-[600px] overflow-y-auto space-y-2">
-                            {logs.map((log) => (
+                        <div className="p-4 font-mono text-xs leading-relaxed max-h-[600px] overflow-y-auto space-y-2 custom-scrollbar">
+                            {loading ? (
+                                <div className="py-20 text-center text-zinc-600 animate-pulse font-black uppercase tracking-[0.3em]">
+                                    Intercepting Neural Streams...
+                                </div>
+                            ) : liveLogs.length === 0 ? (
+                                <div className="py-20 text-center text-zinc-600 font-bold uppercase tracking-widest">
+                                    No neural activity detected.
+                                </div>
+                            ) : liveLogs.map((log) => (
                                 <div key={log.id} className="flex gap-6 py-2 group hover:bg-white/[0.01] transition-all px-4 rounded-lg">
-                                    <span className="text-zinc-600 shrink-0">[{log.time}]</span>
-                                    <span className={`font-bold flex items-center gap-2 w-48 ${log.status === 'success' ? 'text-green-500' :
-                                            log.status === 'error' ? 'text-red-500' : 'text-primary'
+                                    <span className="text-zinc-600 shrink-0">[{new Date(log.created_at).toLocaleString()}]</span>
+                                    <span className={`font-bold flex items-center gap-2 w-48 ${log.status === 'completed' ? 'text-green-500' :
+                                        log.status === 'failed' ? 'text-red-500' : 'text-primary'
                                         }`}>
-                                        {log.status === 'success' && <CheckCircle2 className="h-3 w-3" />}
-                                        {log.status === 'error' && <AlertCircle className="h-3 w-3" />}
-                                        {log.status === 'processing' && <Terminal className="h-3 w-3 animate-pulse" />}
-                                        {log.event}
+                                        {log.status === 'completed' && <CheckCircle2 className="h-3 w-3" />}
+                                        {log.status === 'failed' && <AlertCircle className="h-3 w-3" />}
+                                        {(log.status === 'processing' || log.status === 'queued') && <Terminal className="h-3 w-3 animate-pulse" />}
+                                        {log.status.toUpperCase()} :: {log.config?.quantization?.toUpperCase() || 'OPT'}
                                     </span>
-                                    <span className="text-zinc-400">Model: <span className="text-white italic">{log.model}</span></span>
+                                    <span className="text-zinc-400">Model: <span className="text-white italic">{log.models?.name || 'Unknown Artifact'}</span></span>
                                     <span className="text-zinc-600 ml-auto flex items-center gap-2">
                                         <Cpu className="h-3 w-3" />
-                                        {log.hardware}
+                                        {log.config?.hardware || 'Cloud Grid'}
                                     </span>
                                 </div>
                             ))}

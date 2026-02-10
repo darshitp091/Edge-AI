@@ -109,7 +109,7 @@ export default function DashboardSidebar() {
                     </div>
                 </div>
                 {credits < features.maxCredits * 0.2 && (
-                    <p className="text-[8px] text-red-400 font-bold animate-pulse">
+                    <p className="text-[8px] text-red-500 font-bold animate-pulse text-center">
                         ⚠️ Neural Bits low. Protocol expansion recommended.
                     </p>
                 )}

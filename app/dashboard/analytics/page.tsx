@@ -143,7 +143,27 @@ function AnalyticsContent() {
                                 <Filter className="mr-2 h-4 w-4" />
                                 Filter Stream
                             </Button>
-                            <Button className="bg-primary hover:bg-primary/90 glow-blue rounded-2xl h-11 px-6 font-bold">
+                            <Button
+                                onClick={() => {
+                                    const data = {
+                                        timestamp: new Date().toISOString(),
+                                        latency: latencyData,
+                                        resources: resourceData,
+                                        efficiency: efficiencyFlow,
+                                        vram_usage: totalVRAM
+                                    };
+                                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `edgeai-analytics-${new Date().getTime()}.json`;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    document.body.removeChild(a);
+                                    URL.revokeObjectURL(url);
+                                }}
+                                className="bg-primary hover:bg-primary/90 glow-blue rounded-2xl h-11 px-6 font-bold"
+                            >
                                 <Download className="mr-2 h-4 w-4" />
                                 Export Data
                             </Button>

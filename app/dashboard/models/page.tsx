@@ -78,9 +78,11 @@ export default function ModelGalleryPage() {
                                     className="pl-12 bg-white/5 border-zinc-800 focus:border-primary/50 h-11 rounded-2xl"
                                 />
                             </div>
-                            <Button className="bg-primary hover:bg-primary/90 glow-blue rounded-2xl h-11 px-6 font-bold">
-                                Compress New
-                            </Button>
+                            <Link href="/dashboard/compress">
+                                <Button className="bg-primary hover:bg-primary/90 glow-blue rounded-2xl h-11 px-6 font-bold">
+                                    Compress New
+                                </Button>
+                            </Link>
                         </div>
                     </div>
 

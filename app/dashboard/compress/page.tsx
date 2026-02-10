@@ -24,7 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { usePlan } from "@/hooks/use-plan";
 
 export default function CompressionPage() {
-    const { features, tier, loading } = usePlan();
+    const { features, tier, credits, decrementCredits, loading } = usePlan();
     const [config, setConfig] = useState({
         quantization: "int8",
         pruning: 30,
@@ -164,14 +164,26 @@ export default function CompressionPage() {
                                 </div>
 
                                 <Button
-                                    onClick={() => {
+                                    onClick={async () => {
                                         const jobId = localStorage.getItem('current_job_id');
                                         if (!jobId) {
                                             alert("Please ingest a neural artifact first.");
                                             return;
                                         }
-                                        // Start the optimization process
-                                        window.location.href = `/dashboard/analytics?job=${jobId}`;
+
+                                        if (credits <= 0) {
+                                            alert("Insufficient Neural Bits. Please upgrade your protocol.");
+                                            window.location.href = "/pricing";
+                                            return;
+                                        }
+
+                                        const success = await decrementCredits(1);
+                                        if (success) {
+                                            // Start the optimization process
+                                            window.location.href = `/dashboard/analytics?job=${jobId}`;
+                                        } else {
+                                            alert("Neural transmission failed. Please try again.");
+                                        }
                                     }}
                                     className="w-full h-14 bg-primary hover:bg-primary/90 glow-blue rounded-2xl font-black text-lg group"
                                 >
