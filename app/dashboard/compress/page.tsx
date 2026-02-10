@@ -68,28 +68,22 @@ export default function CompressionPage() {
                                     <Label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Quantization Architecture</Label>
                                     <div className="grid grid-cols-3 gap-3">
                                         {['FP16', 'INT8', 'INT4'].map((mode) => {
-                                            const isLocked = mode === 'INT4' && !features.canUseInt4;
+                                            const isRestricted = mode === 'INT4' && !features.canUseInt4;
+                                            if (isRestricted) return null;
+
                                             return (
                                                 <button
                                                     key={mode}
-                                                    disabled={isLocked}
                                                     onClick={() => setConfig({ ...config, quantization: mode.toLowerCase() })}
                                                     className={`
                                                       p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 group relative
                                                       ${config.quantization === mode.toLowerCase()
                                                             ? 'bg-primary/10 border-primary text-white'
                                                             : 'bg-white/5 border-white/5 text-zinc-500 hover:border-white/20'}
-                                                      ${isLocked ? 'opacity-50 cursor-not-allowed grayscale' : ''}
                                                     `}
                                                 >
-                                                    {isLocked && (
-                                                        <div className="absolute top-2 right-2">
-                                                            <Lock className="h-3 w-3 text-zinc-600" />
-                                                        </div>
-                                                    )}
                                                     <Zap className={`h-4 w-4 ${config.quantization === mode.toLowerCase() ? 'text-primary' : 'text-zinc-600'}`} />
                                                     <span className="text-xs font-black">{mode}</span>
-                                                    {isLocked && <span className="text-[8px] text-primary font-bold uppercase tracking-tighter">Pro+</span>}
                                                 </button>
                                             );
                                         })}
@@ -117,19 +111,19 @@ export default function CompressionPage() {
                                     <Label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Target Hardware Node</Label>
                                     <div className="space-y-2">
                                         {[
-                                            { id: 'jetson', name: 'NVIDIA Jetson / TensorRT', icon: Cpu },
-                                            { id: 'mobile', name: 'Mobile NPU (iOS/Android)', icon: ShieldCheck },
-                                            { id: 'generic', name: 'Generic CPU (llama.cpp)', icon: Gauge },
-                                        ].map((hw) => (
+                                            { id: 'jetson', name: 'NVIDIA Jetson / TensorRT', icon: Cpu, restricted: false },
+                                            { id: 'mobile', name: 'Mobile NPU (iOS/Android)', icon: ShieldCheck, restricted: !features.customHardware },
+                                            { id: 'generic', name: 'Generic CPU (llama.cpp)', icon: Gauge, restricted: false },
+                                        ].filter(hw => !hw.restricted).map((hw) => (
                                             <button
                                                 key={hw.id}
                                                 onClick={() => setConfig({ ...config, hardware: hw.id })}
                                                 className={`
-                          w-full p-4 rounded-2xl border transition-all flex items-center justify-between group
-                          ${config.hardware === hw.id
+                                                  w-full p-4 rounded-2xl border transition-all flex items-center justify-between group
+                                                  ${config.hardware === hw.id
                                                         ? 'bg-primary/10 border-primary text-white'
                                                         : 'bg-white/5 border-white/5 text-zinc-500 hover:border-white/20'}
-                        `}
+                                                `}
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <hw.icon className={`h-4 w-4 ${config.hardware === hw.id ? 'text-primary' : 'text-zinc-600'}`} />
@@ -143,21 +137,20 @@ export default function CompressionPage() {
 
                                 {/* Advanced Toggles */}
                                 <div className="space-y-4 pt-4 border-t border-white/5">
-                                    <div className={`flex items-center justify-between ${!features.canUseDistillation ? 'opacity-50' : ''}`}>
-                                        <div className="space-y-0.5">
-                                            <div className="flex items-center gap-2">
-                                                <Label className="text-sm font-bold text-white">Knowledge Distillation</Label>
-                                                {!features.canUseDistillation && <Lock className="h-3 w-3 text-zinc-600" />}
-                                                {!features.canUseDistillation && <span className="px-2 py-0.5 bg-primary/20 text-primary text-[8px] font-black rounded-full uppercase tracking-tighter border border-primary/20">Enterprise</span>}
+                                    {features.canUseDistillation && (
+                                        <div className="flex items-center justify-between">
+                                            <div className="space-y-0.5">
+                                                <div className="flex items-center gap-2">
+                                                    <Label className="text-sm font-bold text-white">Knowledge Distillation</Label>
+                                                </div>
+                                                <p className="text-[10px] text-zinc-500">Use teacher model to recover accuracy</p>
                                             </div>
-                                            <p className="text-[10px] text-zinc-500">Use teacher model to recover accuracy</p>
+                                            <Switch
+                                                checked={config.distillation}
+                                                onCheckedChange={(val: boolean) => setConfig({ ...config, distillation: val })}
+                                            />
                                         </div>
-                                        <Switch
-                                            disabled={!features.canUseDistillation}
-                                            checked={config.distillation}
-                                            onCheckedChange={(val: boolean) => setConfig({ ...config, distillation: val })}
-                                        />
-                                    </div>
+                                    )}
                                     <div className="flex items-center justify-between">
                                         <div className="space-y-0.5">
                                             <Label className="text-sm font-bold text-white">Hardware-Aware Search</Label>

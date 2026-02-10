@@ -2,48 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-
-export type PlanTier = 'free' | 'pro' | 'enterprise';
-
-export interface PlanFeatures {
-    maxCredits: number;
-    canUseInt4: boolean;
-    canUseMixedPrecision: boolean;
-    canUsePruning: boolean;
-    canUseDistillation: boolean;
-    priorityProcessing: boolean;
-    apiBatching: boolean;
-}
-
-const PLAN_CONFIGS: Record<PlanTier, PlanFeatures> = {
-    free: {
-        maxCredits: 100,
-        canUseInt4: false,
-        canUseMixedPrecision: false,
-        canUsePruning: false,
-        canUseDistillation: false,
-        priorityProcessing: false,
-        apiBatching: false,
-    },
-    pro: {
-        maxCredits: 1000,
-        canUseInt4: true,
-        canUseMixedPrecision: true,
-        canUsePruning: true,
-        canUseDistillation: false,
-        priorityProcessing: true,
-        apiBatching: false,
-    },
-    enterprise: {
-        maxCredits: 10000,
-        canUseInt4: true,
-        canUseMixedPrecision: true,
-        canUsePruning: true,
-        canUseDistillation: true,
-        priorityProcessing: true,
-        apiBatching: true,
-    },
-};
+import { PlanTier, PlanFeatures, PLAN_CONFIGS } from '@/lib/plans';
 
 export function usePlan() {
     const [tier, setTier] = useState<PlanTier>('free');
@@ -60,7 +19,7 @@ export function usePlan() {
                     .single();
 
                 if (profile) {
-                    setTier(profile.subscription_tier as PlanTier);
+                    setTier((profile.subscription_tier?.toLowerCase() || 'free') as PlanTier);
 
                     // --- Dynamic Credit Reset Logic ---
                     if (profile.billing_cycle_start) {
@@ -71,7 +30,7 @@ export function usePlan() {
 
                         if (now >= nextReset) {
                             console.log("📅 Billing Cycle Detected: Resetting Neural Credits...");
-                            const config = PLAN_CONFIGS[profile.subscription_tier as PlanTier];
+                            const config = PLAN_CONFIGS[(profile.subscription_tier?.toLowerCase() || 'free') as PlanTier];
 
                             // Perform atomic reset
                             await supabase.from('profiles').update({
@@ -93,7 +52,7 @@ export function usePlan() {
         tier,
         features: PLAN_CONFIGS[tier],
         loading,
-        isPro: tier === 'pro' || tier === 'enterprise',
-        isEnterprise: tier === 'enterprise'
+        isPro: tier === 'pro' || tier === 'business' || tier === 'starter',
+        isEnterprise: tier === 'business'
     };
 }

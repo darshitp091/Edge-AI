@@ -138,8 +138,8 @@ export default function PricingCards() {
             description: `${tier.name} Plan Subscription`,
             notes: {
                 user_id: session.user.id,
-                plan_name: tier.name,
-                credits_to_add: tier.name === "Starter" ? 50 : tier.name === "Pro" ? 200 : 0
+                plan_name: tier.name.toLowerCase(),
+                credits_to_add: tier.name === "Starter" ? 50 : tier.name === "Pro" ? 200 : tier.name === "Business" ? 1000 : 0
             },
             handler: (response: { razorpay_payment_id: string }) => {
                 console.log("Payment Successful:", response);

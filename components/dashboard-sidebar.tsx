@@ -93,7 +93,7 @@ export default function DashboardSidebar() {
                         <div className={`h-full w-full ${credits > 0 ? 'bg-primary' : 'bg-red-500'} rounded-full relative`} />
                     </div>
                     <span className="text-[10px] uppercase font-black tracking-widest text-zinc-300">
-                        {tier === 'enterprise' ? 'Unlimited Neural Grid' : `${tier.toUpperCase()} Tier Credits`}
+                        {tier === 'business' ? 'Unlimited Neural Grid' : `${tier.toUpperCase()} Tier Credits`}
                     </span>
                 </div>
                 <div className="space-y-2">

@@ -59,9 +59,10 @@ export async function POST(req: Request) {
 
             // Map plan to credits (Standard SaaS pricing)
             const creditMapping: Record<string, number> = {
-                "free": 100,
-                "pro": 1000,
-                "enterprise": 10000
+                "free": 5,
+                "starter": 50,
+                "pro": 200,
+                "business": 1000
             };
 
             const credits = creditMapping[planName.toLowerCase()] || 0;
@@ -88,8 +89,7 @@ export async function POST(req: Request) {
             if (userId) {
                 console.log(`⚠️ Subscription Terminated: User ${userId}`);
                 await supabaseAdmin.from('profiles').update({
-                    plan_tier: "free",
-                    subscription_id: null,
+                    subscription_tier: "free",
                     updated_at: new Date().toISOString()
                 }).eq('id', userId);
             }

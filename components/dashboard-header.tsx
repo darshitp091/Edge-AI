@@ -6,7 +6,8 @@ import { supabase } from "@/lib/supabase";
 import { Bell, Search, User, Zap, LogOut } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { usePlan, PlanTier } from "@/hooks/use-plan";
+import { usePlan } from "@/hooks/use-plan";
+import { PlanTier } from "@/lib/plans";
 
 export default function DashboardHeader() {
     const router = useRouter();
@@ -94,7 +95,7 @@ export default function DashboardHeader() {
                     <div className="flex flex-col text-left">
                         <span className="text-xs font-bold text-zinc-200 truncate max-w-[80px]">{userName}</span>
                         <span className="text-[8px] uppercase tracking-tighter text-primary font-black">
-                            {tier === 'pro' ? "Pro Operator" : tier === 'enterprise' ? "Enterprise Arch" : "Explorer"}
+                            {tier === 'business' ? "Business Architect" : tier === 'pro' ? "Pro Tactical" : tier === 'starter' ? "Starter Node" : "Explorer"}
                         </span>
                         {resetDate && (
                             <span className="text-[6px] uppercase tracking-tighter text-zinc-500 font-bold mt-0.5">
