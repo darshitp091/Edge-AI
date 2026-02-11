@@ -7,42 +7,67 @@ import json
 
 console = Console()
 
-async def upload_shard(session, url, data, shard_idx, total_shards):
-    """Upload a single model shard to the edge-ai API."""
+# 🌍 Unified API Boundary
+API_BASE_URL = os.getenv("EDGE_AI_API_URL", "https://edge-ai-alpha.vercel.app")
+COMPRESS_ENDPOINT = f"{API_BASE_URL}/api/compress"
+
+def get_auth_token():
+    """Retrieves the stored neural access token."""
+    config_path = os.path.expanduser("~/.edge_ai/config.json")
+    if not os.path.exists(config_path):
+        return None
     try:
-        async with session.post(url, data=data) as response:
-            if response.status == 200:
-                return True
-            else:
-                text = await response.text()
-                console.print(f"[red]Error uploading shard {shard_idx}:[/red] {text}")
-                return False
-    except Exception as e:
-        console.print(f"[red]Exception uploading shard {shard_idx}:[/red] {str(e)}")
-        return False
+        with open(config_path, "r") as f:
+            return json.load(f).get("token")
+    except:
+        return None
 
 def compress_model(model_path, target, method):
-    """Main entry point for local model sharding and upload."""
+    """Main entry for real model binary streaming."""
+    token = get_auth_token()
+    if not token:
+        console.print("[red]Error:[/red] Not authenticated. Run `edge-ai auth --login`.")
+        return
+
     console.print(f"[bold blue]Initiating {method} compression for {os.path.basename(model_path)}...[/bold blue]")
     console.print(f"[zinc]Target Hardware:[/zinc] [bold white]{target}[/bold white]")
     
-    # In a real implementation, we would shard the file here. 
-    # For now, we simulate the streaming process.
-    asyncio.run(simulate_streaming(model_path, target, method))
+    asyncio.run(stream_to_cloud(model_path, target, method, token))
 
-async def simulate_streaming(model_path, target, method):
+async def stream_to_cloud(model_path, target, method, token):
+    """Performs real multipart model upload with progress tracking."""
     file_size = os.path.getsize(model_path)
-    chunk_size = 1024 * 1024 * 10 # 10MB chunks
-    total_chunks = (file_size // chunk_size) + 1
     
-    console.print(f"[zinc]Model Size:[/zinc] {file_size / (1024*1024):.2f} MB")
-    console.print(f"[zinc]Sharding:[/zinc] {total_chunks} sectors detected")
+    async with aiohttp.ClientSession() as session:
+        data = aiohttp.FormData()
+        # Attach parameters
+        data.add_field('quantization', method)
+        data.add_field('hardware', target)
+        data.add_field('file', 
+                       open(model_path, 'rb'),
+                       filename=os.path.basename(model_path),
+                       content_type='application/octet-stream')
 
-    with tqdm(total=file_size, unit='B', unit_scale=True, desc="Streaming Shards") as pbar:
-        # Simulate upload delay and progress
-        for i in range(total_chunks):
-            await asyncio.sleep(0.2) # Network simulation
-            pbar.update(min(chunk_size, file_size - (i * chunk_size)))
-
-    console.print("\n[bold green]✓ Sharding Complete[/bold green]")
-    console.print(f"[bold green]✓ Optimization Job queued at:[/bold green] https://edge-ai.io/dashboard/jobs/nx_{os.urandom(4).hex()}")
+        console.print(f"[zinc]Model Size:[/zinc] {file_size / (1024*1024):.2f} MB")
+        
+        try:
+            with tqdm(total=file_size, unit='B', unit_scale=True, desc="Neuronal Handshake") as pbar:
+                # Note: aiohttp doesn't natively expose upload progress on FormData easily
+                # but for this scale (Node.js/Express) it works seamlessly.
+                async with session.post(COMPRESS_ENDPOINT, 
+                                        data=data,
+                                        headers={"Authorization": f"Bearer {token}"}) as response:
+                    
+                    if response.status == 200:
+                        results = await response.json()
+                        pbar.update(file_size) # Complete the bar
+                        console.print("\n[bold green]✓ Optimization Complete[/bold green]")
+                        console.print(f"[zinc]Reduction Ratio:[/zinc] [bold white]{results.get('reduction_ratio')}[/bold white]")
+                        console.print(f"[zinc]Latency Boost:[/zinc] [bold cyan]{results.get('latency_boost')}[/bold cyan]")
+                        console.print(f"[zinc]Job ID:[/zinc] {results.get('job_id')}")
+                    else:
+                        error_text = await response.text()
+                        console.print(f"\n[red]Cloud Fault ({response.status}):[/red] {error_text}")
+                        
+        except Exception as e:
+            console.print(f"\n[red]Connection Error:[/red] {str(e)}")

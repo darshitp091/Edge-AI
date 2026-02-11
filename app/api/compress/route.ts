@@ -3,22 +3,23 @@ import { NeuralOrchestrator } from '@/lib/ml/orchestrator';
 import { updateJobStatus, registerOptimizedModel, supabaseAdmin } from '@/lib/supabase-admin';
 import { CompressionRequestSchema } from '@/lib/schemas/neural';
 import crypto from 'crypto';
+import { writeFile } from 'fs/promises';
+import path from 'path';
 
 /**
- * 🚀 Neural Compression API (Node.js version)
- * This route is the entry point for all sharding and quantization protocols.
- * It is fully hardened with Zod validation and a modular orchestrator.
+ * 🚀 Neural Compression API (Real Binary Hardware Handshake)
+ * This route is the entry point for actual sharding and quantization protocols.
  */
 export async function POST(req: NextRequest) {
+    const jobId = crypto.randomUUID();
     try {
         const formData = await req.formData();
         const file = formData.get('file') as File;
 
         // 1. Strict Technical Validation (Zod)
-        // Matches the Pydantic type-safety of the Python version
         const parseResult = CompressionRequestSchema.safeParse({
             quantization: formData.get('quantization'),
-            pruning_ratio: formData.get('pruning_ratio') ? parseFloat(formData.get('pruning_ratio') as string) : undefined,
+            pruning_ratio: formData.get('pruning_ratio') ? parseFloat(formData.get('pruning_ratio') as string) : 0.3,
             target_hardware: formData.get('hardware'),
             user_id: formData.get('user_id'),
             model_id: formData.get('model_id'),
@@ -37,29 +38,38 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'No neural artifact detected' }, { status: 400 });
         }
 
-        const jobId = crypto.randomUUID();
-
         // 2. Initial Job Pulse (Supabase)
-        // This ensures the dashboard can track 'Initializing' status immediately
         await updateJobStatus(jobId, 'initializing', 10);
 
-        // 3. Neural Pipeline Execution (Modular Orchestrator)
-        // This coordinates specialized Quantizer and Pruner services
+        // 3. Binary Handshake (Conversion to Uint8Array)
+        const arrayBuffer = await file.arrayBuffer();
+        const modelBuffer = new Uint8Array(arrayBuffer);
+
+        await updateJobStatus(jobId, 'processing', 40);
+
+        // 4. Neural Pipeline Execution (Real Binary Engine)
         const results = await NeuralOrchestrator.runPipeline(
-            file.size,
+            modelBuffer,
             config.quantization as 'int8' | 'int4' | 'fp16',
             config.pruning_ratio,
             config.target_hardware,
             jobId
         );
 
-        // 4. Persistence & Metric Sync
-        // Transfers results to R2 storage pointers and Supabase telemetry
+        // 5. Persistence (Save optimized binary to disk)
+        // Note: In production, this would be pushed to R2/S3
+        const optimizedFilename = `${jobId}_opt_${file.name.replace(/\s+/g, '_')}`;
+        const outputDir = path.join(process.cwd(), 'public', 'optimized');
+        const outputPath = path.join(outputDir, optimizedFilename);
+
+        await writeFile(outputPath, results.buffer);
+
+        // 6. DB Registry & Metric Sync
         if (config.model_id) {
             await registerOptimizedModel(
                 config.model_id,
-                `optimized/${jobId}_opt_${file.name}`,
-                file.size / (config.quantization === 'int4' ? 8 : 4)
+                `/optimized/${optimizedFilename}`,
+                results.buffer.length
             );
         }
 
@@ -71,14 +81,18 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        // 5. Final Dispatch
+        // 7. Final Dispatch
         await updateJobStatus(jobId, 'completed', 100);
 
-        return NextResponse.json(results);
+        // Remove buffer from results before sending to client to keep response small
+        const { buffer, ...responseMetrics } = results;
+
+        return NextResponse.json(responseMetrics);
 
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Internal Neural Handshake Failure';
         console.error("Neural Route Error:", error);
+        await updateJobStatus(jobId, 'failed', 0, errorMessage);
         return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import DashboardSidebar from "@/components/dashboard-sidebar";
 import DashboardHeader from "@/components/dashboard-header";
 import ModelUpload from "@/components/model-upload";
+import HuggingFaceImport from "@/components/hugging-face-import";
 import { motion } from "framer-motion";
 import {
     Settings2,
@@ -14,7 +15,9 @@ import {
     ChevronRight,
     Database,
     ArrowRight,
-    Lock
+    Lock,
+    UploadCloud,
+    Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -25,6 +28,7 @@ import { usePlan } from "@/hooks/use-plan";
 
 export default function CompressionPage() {
     const { features, tier, credits, decrementCredits, loading } = usePlan();
+    const [activeTab, setActiveTab] = useState<'local' | 'hf'>('local');
     const [config, setConfig] = useState({
         quantization: "int8",
         pruning: 30,
@@ -46,13 +50,32 @@ export default function CompressionPage() {
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        {/* Step 1: Upload */}
+                        {/* Step 1: Ingestion */}
                         <div className="space-y-6">
-                            <div className="flex items-center gap-3">
-                                <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center text-xs font-black shadow-lg shadow-primary/20">1</div>
-                                <h2 className="text-lg font-bold text-white">Model Ingestion</h2>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center text-xs font-black shadow-lg shadow-primary/20">1</div>
+                                    <h2 className="text-lg font-bold text-white">Model Ingestion</h2>
+                                </div>
+                                <div className="flex bg-white/5 p-1 rounded-xl border border-white/5">
+                                    <button
+                                        onClick={() => setActiveTab('local')}
+                                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'local' ? 'bg-primary text-black' : 'text-zinc-500 hover:text-white'}`}
+                                    >
+                                        <UploadCloud className="h-3 w-3 inline mr-2" />
+                                        Local
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('hf')}
+                                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'hf' ? 'bg-[#FFD21E] text-black' : 'text-zinc-500 hover:text-white'}`}
+                                    >
+                                        <Download className="h-3 w-3 inline mr-2" />
+                                        Hugging Face
+                                    </button>
+                                </div>
                             </div>
-                            <ModelUpload />
+
+                            {activeTab === 'local' ? <ModelUpload /> : <HuggingFaceImport />}
                         </div>
 
                         {/* Step 2: Configure */}
