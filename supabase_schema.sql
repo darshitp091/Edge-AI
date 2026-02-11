@@ -6,9 +6,9 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
     full_name TEXT,
     avatar_url TEXT,
-    credits INTEGER DEFAULT 10,
+    credits INTEGER DEFAULT 5,
     subscription_tier TEXT DEFAULT 'free',
-    api_key_hash TEXT,
+    api_key TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -92,7 +92,7 @@ BEGIN
     new.id,
     new.raw_user_meta_data->>'full_name',
     new.raw_user_meta_data->>'avatar_url',
-    10, -- Starting credits
+    5, -- Starting credits
     'free'
   );
   RETURN new;

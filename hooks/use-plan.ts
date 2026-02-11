@@ -71,6 +71,7 @@ export function usePlan() {
         credits,
         features: PLAN_CONFIGS[tier],
         decrementCredits,
+        refresh: fetchAndSyncPlan,
         loading,
         isPro: tier === 'pro' || tier === 'business' || tier === 'starter',
         isEnterprise: tier === 'business'

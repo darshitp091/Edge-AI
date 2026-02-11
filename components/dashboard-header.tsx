@@ -11,9 +11,8 @@ import { PlanTier } from "@/lib/plans";
 
 export default function DashboardHeader() {
     const router = useRouter();
-    const { tier, features, loading: planLoading, isPro } = usePlan();
+    const { tier, credits, features, loading: planLoading, isPro } = usePlan();
     const [userName, setUserName] = useState<string>("Neural_Guest");
-    const [credits, setCredits] = useState<number>(0);
     const [resetDate, setResetDate] = useState<string>("");
 
     useEffect(() => {
@@ -22,20 +21,17 @@ export default function DashboardHeader() {
             if (user) {
                 setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || "Operator");
 
-                // Fetch real-time profile data for credits
+                // Fetch reset date only
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('credits, billing_cycle_start')
+                    .select('billing_cycle_start')
                     .eq('id', user.id)
                     .single();
 
-                if (profile) {
-                    setCredits(profile.credits || 0);
-                    if (profile.billing_cycle_start) {
-                        const date = new Date(profile.billing_cycle_start);
-                        date.setMonth(date.getMonth() + 1);
-                        setResetDate(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-                    }
+                if (profile?.billing_cycle_start) {
+                    const date = new Date(profile.billing_cycle_start);
+                    date.setMonth(date.getMonth() + 1);
+                    setResetDate(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
                 }
             }
         };

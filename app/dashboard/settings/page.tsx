@@ -138,7 +138,7 @@ export default function SettingsPage() {
                                         <div className="flex flex-col gap-1">
                                             <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Primary Engine Key</span>
                                             <span className="font-mono text-sm text-zinc-300">
-                                                {profile?.api_key ? `edge_${profile.api_key.slice(0, 8)}...${profile.api_key.slice(-4)}` : "edge_gen_vector_pending_000"}
+                                                {profile?.api_key ? profile.api_key : "edge_ai_vector_pending_000"}
                                             </span>
                                         </div>
                                         <Button
@@ -157,14 +157,20 @@ export default function SettingsPage() {
                                 </div>
                                 <Button
                                     onClick={async () => {
-                                        const newKey = `sk_${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`;
+                                        const namePrefix = profile?.full_name ? profile.full_name[0].toLowerCase() : 'u';
+                                        const entropy = Math.random().toString(36).substring(2, 12) + Math.random().toString(36).substring(2, 12);
+                                        const newKey = `edge_ai_${namePrefix}_${entropy}`;
+
                                         const { error } = await supabase
                                             .from('profiles')
                                             .update({ api_key: newKey })
                                             .eq('id', user.id);
+
                                         if (!error) {
                                             setProfile({ ...profile, api_key: newKey });
-                                            alert("New neural access vector generated.");
+                                            alert("New cryptographic access vector generated.");
+                                        } else {
+                                            alert("Transmission error. Neural key generation failed.");
                                         }
                                     }}
                                     variant="outline"
@@ -225,7 +231,7 @@ export default function SettingsPage() {
                                     <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-tight">Next Cycle: {resetDateStr}</p>
                                 </div>
                                 <Button
-                                    onClick={() => window.location.href = "/pricing"}
+                                    onClick={() => window.location.href = "/#pricing"}
                                     className="w-full h-12 bg-primary hover:bg-primary/90 glow-blue text-white font-black rounded-2xl"
                                 >
                                     Expand Access / Upgrade

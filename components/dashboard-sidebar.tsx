@@ -30,23 +30,7 @@ const menuItems = [
 
 export default function DashboardSidebar() {
     const pathname = usePathname();
-    const { tier, features, loading: planLoading } = usePlan();
-    const [credits, setCredits] = useState(0);
-
-    useEffect(() => {
-        const fetchCredits = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('credits')
-                    .eq('id', user.id)
-                    .single();
-                if (profile) setCredits(profile.credits || 0);
-            }
-        };
-        fetchCredits();
-    }, []);
+    const { tier, credits, features, loading: planLoading } = usePlan();
 
     const capacityPercentage = Math.min(100, Math.round((credits / features.maxCredits) * 100));
 
