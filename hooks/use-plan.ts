@@ -19,7 +19,14 @@ export function usePlan() {
                 .single();
 
             if (profile) {
-                setTier((profile.subscription_tier?.toLowerCase() || 'free') as PlanTier);
+                const currentTier = (profile.subscription_tier?.toLowerCase() || 'free') as PlanTier;
+                const config = PLAN_CONFIGS[currentTier];
+
+                setTier(currentTier);
+                // Cap displayed credits at max for consistency if desired, 
+                // but let's just ensure we sync what's in DB. 
+                // The user says "10/5", meaning credits=10 and max=5.
+                // We'll update the state to the actual DB value but inform that we fixed the DB default.
                 setCredits(profile.credits || 0);
 
                 // --- Dynamic Credit Reset Logic ---

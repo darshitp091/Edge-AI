@@ -1,10 +1,10 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { Menu, X, Zap } from "lucide-react";
+import { Menu, X, User, LayoutDashboard, Settings, Key, LogOut } from "lucide-react";
 import Logo from "./logo";
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
 
 const navLinks = [
     { name: "Features", href: "/#features" },
@@ -16,15 +16,37 @@ const navLinks = [
 export default function Header() {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [user, setUser] = useState<any>(null);
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const router = useRouter();
 
     useEffect(() => {
         const handleScroll = () => {
             setIsScrolled(window.scrollY > 50);
         };
 
+        const checkUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setUser(user);
+        };
+
+        checkUser();
         window.addEventListener("scroll", handleScroll);
-        return () => window.removeEventListener("scroll", handleScroll);
+
+        const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+            setUser(session?.user || null);
+        });
+
+        return () => {
+            window.removeEventListener("scroll", handleScroll);
+            authListener?.subscription.unsubscribe();
+        };
     }, []);
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        router.push("/");
+    };
 
     return (
         <header
@@ -52,18 +74,67 @@ export default function Header() {
                         ))}
                     </nav>
 
-                    {/* Desktop CTA Buttons */}
+                    {/* Desktop CTA Buttons / AuthNav */}
                     <div className="hidden md:flex items-center gap-4">
-                        <Link href="/login">
-                            <Button variant="ghost" className="text-foreground/80 hover:text-foreground">
-                                Login
-                            </Button>
-                        </Link>
-                        <Link href="/signup">
-                            <Button className="bg-primary hover:bg-primary/90 glow-blue">
-                                Start Free
-                            </Button>
-                        </Link>
+                        {user ? (
+                            <div className="relative">
+                                <Button
+                                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                                    variant="ghost"
+                                    className="gap-2 px-4 rounded-full border border-primary/20 bg-primary/5 hover:bg-primary/10"
+                                >
+                                    <User className="h-4 w-4 text-primary" />
+                                    <span className="text-sm font-bold truncate max-w-[120px]">
+                                        {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                                    </span>
+                                </Button>
+
+                                {isUserMenuOpen && (
+                                    <div className="absolute right-0 mt-2 w-56 glass border border-primary/20 rounded-2xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                                        <div className="p-4 border-b border-primary/10">
+                                            <p className="text-[10px] uppercase font-black text-zinc-500 tracking-widest mb-1">Authenticated Pulse</p>
+                                            <p className="text-xs font-bold text-white truncate">{user.email}</p>
+                                        </div>
+                                        <div className="p-2">
+                                            <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-zinc-400 hover:text-white hover:bg-primary/10 transition-colors">
+                                                <LayoutDashboard className="h-4 w-4" />
+                                                <span className="text-sm font-semibold">Dashboard</span>
+                                            </Link>
+                                            <Link href="/dashboard/settings" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-zinc-400 hover:text-white hover:bg-primary/10 transition-colors">
+                                                <Key className="h-4 w-4" />
+                                                <span className="text-sm font-semibold">Neural Keys</span>
+                                            </Link>
+                                            <Link href="/dashboard/settings" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-zinc-400 hover:text-white hover:bg-primary/10 transition-colors">
+                                                <Settings className="h-4 w-4" />
+                                                <span className="text-sm font-semibold">Settings</span>
+                                            </Link>
+                                        </div>
+                                        <div className="p-2 bg-red-500/5">
+                                            <button
+                                                onClick={handleLogout}
+                                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+                                            >
+                                                <LogOut className="h-4 w-4" />
+                                                <span className="text-sm font-semibold">Sign Out</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <>
+                                <Link href="/login">
+                                    <Button variant="ghost" className="text-foreground/80 hover:text-foreground">
+                                        Login
+                                    </Button>
+                                </Link>
+                                <Link href="/signup">
+                                    <Button className="bg-primary hover:bg-primary/90 glow-blue">
+                                        Start Free
+                                    </Button>
+                                </Link>
+                            </>
+                        )}
                     </div>
 
                     {/* Mobile Menu Button */}
@@ -93,23 +164,31 @@ export default function Header() {
                             </Link>
                         ))}
                         <div className="pt-4 space-y-2 border-t border-border">
-                            <Link href="/login" className="block">
-                                <Button
-                                    variant="ghost"
-                                    className="w-full text-foreground/80 hover:text-foreground"
-                                    onClick={() => setIsMobileMenuOpen(false)}
-                                >
-                                    Login
-                                </Button>
-                            </Link>
-                            <Link href="/signup" className="block">
-                                <Button
-                                    className="w-full bg-primary hover:bg-primary/90"
-                                    onClick={() => setIsMobileMenuOpen(false)}
-                                >
-                                    Start Free
-                                </Button>
-                            </Link>
+                            {user ? (
+                                <Link href="/dashboard" className="block w-full">
+                                    <Button className="w-full bg-primary hover:bg-primary/90">Dashboard</Button>
+                                </Link>
+                            ) : (
+                                <>
+                                    <Link href="/login" className="block">
+                                        <Button
+                                            variant="ghost"
+                                            className="w-full text-foreground/80 hover:text-foreground"
+                                            onClick={() => setIsMobileMenuOpen(false)}
+                                        >
+                                            Login
+                                        </Button>
+                                    </Link>
+                                    <Link href="/signup" className="block">
+                                        <Button
+                                            className="w-full bg-primary hover:bg-primary/90"
+                                            onClick={() => setIsMobileMenuOpen(false)}
+                                        >
+                                            Start Free
+                                        </Button>
+                                    </Link>
+                                </>
+                            )}
                         </div>
                     </div>
                 )}

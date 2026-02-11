@@ -157,20 +157,29 @@ export default function SettingsPage() {
                                 </div>
                                 <Button
                                     onClick={async () => {
-                                        const namePrefix = profile?.full_name ? profile.full_name[0].toLowerCase() : 'u';
-                                        const entropy = Math.random().toString(36).substring(2, 12) + Math.random().toString(36).substring(2, 12);
-                                        const newKey = `edge_ai_${namePrefix}_${entropy}`;
+                                        try {
+                                            const namePrefix = profile?.full_name ? profile.full_name[0].toLowerCase() : (user?.email ? user.email[0].toLowerCase() : 'u');
+                                            const entropy = Math.random().toString(36).substring(2, 12) + Math.random().toString(36).substring(2, 12);
+                                            const newKey = `edge_ai_${namePrefix}_${entropy}`;
 
-                                        const { error } = await supabase
-                                            .from('profiles')
-                                            .update({ api_key: newKey })
-                                            .eq('id', user.id);
+                                            const { error } = await supabase
+                                                .from('profiles')
+                                                .update({
+                                                    api_key: newKey,
+                                                    updated_at: new Date().toISOString()
+                                                })
+                                                .eq('id', user.id);
 
-                                        if (!error) {
-                                            setProfile({ ...profile, api_key: newKey });
-                                            alert("New cryptographic access vector generated.");
-                                        } else {
-                                            alert("Transmission error. Neural key generation failed.");
+                                            if (!error) {
+                                                setProfile({ ...profile, api_key: newKey });
+                                                alert("New cryptographic access vector generated successfully.");
+                                            } else {
+                                                console.error("Supabase Update Error:", error);
+                                                alert(`Neural key generation failed: ${error.message}`);
+                                            }
+                                        } catch (err) {
+                                            console.error("Regen Panic:", err);
+                                            alert("Transmission error. Please check your uplink connection.");
                                         }
                                     }}
                                     variant="outline"

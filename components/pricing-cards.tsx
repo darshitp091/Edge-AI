@@ -98,15 +98,19 @@ export default function PricingCards() {
         // 1. Session Guard: Check if user is logged in
         const { data: { session } } = await supabase.auth.getSession();
 
-        if (!session && tier.price !== "0") {
+        if (!session) {
+            if (tier.price === "0") {
+                router.push("/signup");
+                return;
+            }
             // Store target tier in cookie/localStorage to resume after login
             localStorage.setItem('pending_purchase', JSON.stringify(tier));
-            router.push("/signup?callback=purchase");
+            router.push("/login?callback=purchase"); // Redirect to login as per user request
             return;
         }
 
         if (tier.price === "0") {
-            router.push("/signup");
+            router.push("/dashboard");
             return;
         }
 
@@ -115,40 +119,42 @@ export default function PricingCards() {
             return;
         }
 
-        if (!session || !session.user) return;
+        // If user is logged in, initiate payment
+        if (session.user) {
 
-        (initiatePayment as (config: {
-            amount: number;
-            currency: string;
-            name: string;
-            description: string;
-            notes: {
-                user_id: string;
-                plan_name: string;
-                credits_to_add: number;
-            };
-            handler: (response: { razorpay_payment_id: string }) => void;
-            prefill: {
-                email: string;
-            };
-        }) => void)({
-            amount: parseInt(tier.price) * 100, // Amount in paise
-            currency: "USD",
-            name: "EdgeAI Platform",
-            description: `${tier.name} Plan Subscription`,
-            notes: {
-                user_id: session.user.id,
-                plan_name: tier.name.toLowerCase(),
-                credits_to_add: tier.name === "Starter" ? 50 : tier.name === "Pro" ? 200 : tier.name === "Business" ? 1000 : 0
-            },
-            handler: (response: { razorpay_payment_id: string }) => {
-                console.log("Payment Successful:", response);
-                router.push("/dashboard?payment=success&ref=neural_sync");
-            },
-            prefill: {
-                email: session.user.email || "operator@edgeai.sh"
-            }
-        });
+            (initiatePayment as (config: {
+                amount: number;
+                currency: string;
+                name: string;
+                description: string;
+                notes: {
+                    user_id: string;
+                    plan_name: string;
+                    credits_to_add: number;
+                };
+                handler: (response: { razorpay_payment_id: string }) => void;
+                prefill: {
+                    email: string;
+                };
+            }) => void)({
+                amount: parseInt(tier.price) * 100, // Amount in paise
+                currency: "USD",
+                name: "EdgeAI Platform",
+                description: `${tier.name} Plan Subscription`,
+                notes: {
+                    user_id: session.user.id,
+                    plan_name: tier.name.toLowerCase(),
+                    credits_to_add: tier.name === "Starter" ? 50 : tier.name === "Pro" ? 200 : tier.name === "Business" ? 1000 : 0
+                },
+                handler: (response: { razorpay_payment_id: string }) => {
+                    console.log("Payment Successful:", response);
+                    router.push("/dashboard?payment=success&ref=neural_sync");
+                },
+                prefill: {
+                    email: session.user.email || "operator@edgeai.sh"
+                }
+            });
+        }
     };
 
     return (

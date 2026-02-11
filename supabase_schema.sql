@@ -86,14 +86,21 @@ USING (EXISTS (SELECT 1 FROM public.jobs WHERE jobs.id = metrics.job_id AND jobs
 -- This ensures every user gets a profile entry automatically
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
+DECLARE
+  initial_api_key TEXT;
 BEGIN
-  INSERT INTO public.profiles (id, full_name, avatar_url, credits, subscription_tier)
+  -- Generate a secure initial API key
+  -- Pattern: edge_ai_u_{16_char_random}
+  initial_api_key := 'edge_ai_u_' || encode(gen_random_bytes(8), 'hex');
+
+  INSERT INTO public.profiles (id, full_name, avatar_url, credits, subscription_tier, api_key)
   VALUES (
     new.id,
     new.raw_user_meta_data->>'full_name',
     new.raw_user_meta_data->>'avatar_url',
     5, -- Starting credits
-    'free'
+    'free',
+    initial_api_key
   );
   RETURN new;
 END;
